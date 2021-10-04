@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>OpenData</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+        <style type="text/css">
+            body {
+                background-color: #FAEBD7;
+                color: #292421;
+                margin: 10px auto;
+                max-width: 70em;
+            }
+            img {
+                max-width: 30vw;
+                max-height: 10vh;
+            }
+            .title {
+                text-align: center;
+            }
+            .VueTables {
+                padding-top: 10px;
+            }
+            .VueTables__limit {
+                display: none;
+            }
+            .VuePagination__pagination {
+                float: right;
+            }
+        </style>
+    </head>
+    <body>
+        
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+        <script src="https://cdn.rawgit.com/matfish2/vue-tables-2/master/dist/vue-tables-2.min.js"></script>
+
+        <div id="menu">
+            <div class="container">
+                <div class="row">
+                    <my-header></my-header>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="row border border-secondary">
+                            <div class="col-12">
+                                <v-client-table :columns="columns" :data="data" :options="options">
+                                    <p slot="num" slot-scope="props">{{props.row.num|num_format}}</p>
+                                    <img slot="album" slot-scope="props" :src="props.row.album" class="img">
+                                </v-client-table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/x-template" id="my-header">
+            <div class="header col-12 border border-secondary title">
+                <h2>{{name}}</h2>
+            </div>
+        </script>
+
+        <script>
+            Vue.use(VueTables.ClientTable);
+            // 練習將區塊做元件使用
+            Vue.component('my-header', {
+                template: '#my-header',
+                data: function () {
+                    return {
+                        name : "浪浪資訊"
+                    }
+                }
+            });
+            // 練習使用篩選功能
+            Vue.filter('num_format', function(value){
+                return value = 'No.' + value;
+            })
+
+            new Vue({
+                el : "#menu",
+                data : {
+                    columns: ['num', 'kind', 'sex', 'color', 'place', 'first_create', 'last_update', 'album'],
+                    data: getData(),
+                    options: {
+                        filterable: false,
+                        sortable: ['num', 'kind', 'sex', 'first_create', 'last_update', 'place', 'color'],
+                        perPage: 5,
+                        headings: {
+                            num: '編號',
+                            kind: '類型',
+                            sex: '性別',
+                            color: '顏色',
+                            album: '照片',
+                            first_create: '建立日期',
+                            last_update: '最後更新日',
+                            place: '收容位置'
+                        }
+                    },
+                }
+            });
+
+            // API取得資料
+            function getData() {
+                let array = [];
+                const url = "https://data.coa.gov.tw/Service/OpenData/TransService.aspx?UnitId=QcbUEzN6E6DL&animal_status=OPEN";
+                axios.get(url)
+                .then(function(sendback){
+                    const animal_data = sendback.data;
+                    const count = animal_data.length;
+                    
+                    for (let i = 0; i < count; i++) {
+                        // 資料中，沒有更新日期、沒有照片的跳過
+                        if (animal_data[i].cDate == "") continue;
+                        if (animal_data[i].album_file == "") continue;
+                        let temp = {
+                            num : animal_data[i].animal_id,
+                            kind : animal_data[i].animal_kind,
+                            album : animal_data[i].album_file,
+                            first_create : animal_data[i].animal_createtime,
+                            last_update : animal_data[i].cDate,
+                            color : animal_data[i].animal_colour,
+                            sex : animal_data[i].animal_sex == 'F' ? '母' : '公',
+                            place : animal_data[i].animal_place
+                        };
+                        array.push(temp);
+                    }
+                })
+                .catch(function(error){
+                    console.log(error);
+                })
+                return array;
+            }
+
+        </script>
+    </body>
+</html>
